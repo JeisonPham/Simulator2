@@ -9,7 +9,7 @@ from Simulator2.tools.FrameTool import *
 import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('agg')
-
+import Simulator2.tools.Debugging as db
 
 
 class EgoNode(ModelNode):
@@ -54,7 +54,9 @@ class EgoNode(ModelNode):
         self.image = self.simulator.get_nodes(Node.ImageNode)[0]
         self.visible = False
 
+    @db.timeit
     def update(self, frame, objects, points):
+
         center = [self.position[0], self.position[2], np.cos(np.deg2rad(self.angle)), np.sin(np.deg2rad(self.angle))]
         map = render_map(center, objects, points)
         node_position = np.array([*self.manager.current_node.starting_position, 0, 0]).reshape(1, -1)

@@ -1,7 +1,7 @@
 import open3d as o3d
 from Simulator2.o3dElements import gui, rendering
 import threading
-import Layout
+import Simulator2.Layout as Layout
 import sys
 import time
 import Simulator2.Nodes as Nodes
@@ -9,11 +9,46 @@ import Simulator2.Nodes as Nodes
 o3d.utility.set_verbosity_level(o3d.utility.VerbosityLevel.Debug)
 o3d.utility.set_verbosity_level(o3d.utility.VerbosityLevel.Error)
 
-# TODO: Add Ego
-# TODO: Add output window
-
 
 class BaseSimulator:
+    """
+    Base class for Simulator
+
+    ...
+
+    Public Attributes
+    ----------
+    title: str
+        the title of current window
+    width: int
+        the width of the window
+    height: int
+        the height of the window
+    animation_delay_time: float
+        the min time between each frame
+    scene: open3d.visualization.gui.SceneWidget
+        The Active scene used to render 3D objects
+    em: float
+        The current font-size
+    panel: Simulator2.Layout.Panel
+        Panel object that extends from gui.Vert
+
+    Private Attributes
+    ------------------
+    _last_animation_time: float
+        The last time a frame was processed.
+    _computational_nodes: list
+        List of Node objects that are registered with the Base Simulator. Registering a Node will cause it be updated
+        each frame
+    _state: threading.Condition
+        Condition state to manage if thread should stop or continue
+    _paused: bool
+        bool value that indicates if simulator is paused
+    _running: threading.Event
+        Event object that is used to exit computational thread
+    _computational_thread: threading.Thread
+        Current active thread for computation. Only 1 thread is active at a time and is closed when window is closed
+    """
     def __init__(self, title: str, width: int, height: int):
         gui.Application.instance.initialize()
 
@@ -58,6 +93,15 @@ class BaseSimulator:
         self._computational_thread = threading.Thread(target=self._run_computational_loop)
 
     def register_node(self, n):
+        """
+        Registers a Node with the Simulator (Append node to self._computational_nodes)
+
+        Parameters
+        ----------
+        n: Simulator2.Nodes.HeadlessNode
+            The Node that is to be appended to active list of computation_nodes
+            Visual Nodes can either be added to Panel or the Window.
+        """
         n.simulator = self
         self._computational_nodes.append(n)
         if isinstance(n, Nodes.VisualNode):
@@ -67,7 +111,15 @@ class BaseSimulator:
             else:
                 self.window.add_child(n)
 
-    def get_nodes(self, cl):
+    def get_nodes(self, cl: Nodes.HeadlessNode):
+        """
+        Returns Nodes of a specified type
+
+        Parameters
+        ----------
+        cl: Simulator2.Nodes.*
+            Type of Node, input is HeadlessNode because headless is base class
+        """
         temp = []
         for node in self._computational_nodes:
             if isinstance(node, cl):
@@ -145,7 +197,9 @@ class BaseSimulator:
 
                 self.main_thread_finished = False
                 gui.Application.instance.post_to_main_thread(self.window, display)
-                print(time.time() - self._last_animation_time)
+                # print(time.time() - self._last_animation_time)
+            else:
+                time.sleep(now - self._last_animation_time - self.animation_delay_time)
 
     def start_computational_thread(self):
 

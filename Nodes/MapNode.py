@@ -2,6 +2,7 @@ import open3d as o3d
 from Simulator2.o3dElements import gui, rendering, geometry, device
 import Simulator2.Nodes as Node
 import numpy as np
+import Simulator2.Exceptions as Exception
 
 
 class MapNode(Node.ModelNode):
@@ -10,6 +11,10 @@ class MapNode(Node.ModelNode):
         for layer in range(layers):
             voxel = o3d.io.read_triangle_mesh(f"{map_file}/Layer_{layer + 1}.obj")
             mesh += voxel
+
+        if len(mesh.vertices) == 0:
+            raise Exception.NullMeshObjectException
+
         mesh.compute_vertex_normals()
         mat = rendering.MaterialRecord()
         mat.shader = 'defaultLit'
